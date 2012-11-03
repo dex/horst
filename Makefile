@@ -19,6 +19,9 @@
 NAME=horst
 DEBUG=0
 PCAP=0
+ifdef WINPCAP_SRC
+PCAP=1
+endif
 OBJS=main.o capture$(if $(filter 1,$(PCAP)),-pcap).o protocol_parser.o \
 	network.o wext.o node.o essid.o channel.o \
 	util.o ieee80211_util.o listsort.o average.o \
@@ -30,6 +33,10 @@ LIBS=-lncurses -lm
 CFLAGS+=-Wall -DDO_DEBUG=$(DEBUG) -g
 
 ifeq ($(PCAP),1)
+ifdef WINPCAP_SRC
+CFLAGS+=-DWINPCAP -I $(WINPCAP_SRC)/wpcap/libpcap/
+LIBS+= -L $(WINPCAP_SRC)/wpcap/libpcap/
+endif
 CFLAGS+=-DPCAP
 LIBS+=-lpcap
 endif

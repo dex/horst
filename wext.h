@@ -31,4 +31,5 @@ wext_get_freq(int fd, const char* devname);
 int
 wext_get_channels(int fd, const char* devname, struct chan_freq c[MAX_CHANNELS]);
 
+int wext_get_2_4_channels(struct chan_freq c[MAX_CHANNELS]);
 #endif // _WEXT_H_

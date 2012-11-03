@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <pcap.h>
+#ifdef WINPCAP
+#include <pcap-remote.h>
+#endif
 #include <err.h>
 
 #include "capture.h"
@@ -77,6 +80,10 @@ open_packet_socket(char* devname, size_t bufsize, int recv_buffer_size)
 		return -1;
 	}
 
+#ifdef WINPCAP
+	pcap_startcapture_remote(pcap_fp);
+#endif
+
 	return pcap_fileno(pcap_fp);
 }
 
@@ -91,7 +98,11 @@ device_get_arptype(int fd, char* ifname)
 		case DLT_PRISM_HEADER:
 			return 802;
 		default:
+#ifdef WINPCAP
+			return 803;
+#else
 			return 801;
+#endif
 		}
 	}
 	return -1;

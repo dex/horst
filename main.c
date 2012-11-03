@@ -305,10 +305,14 @@ handle_packet(struct packet_info* p)
 	}
 	/* not found from pkt, best guess from config but it might be
 	 * unknown (-1) too */
+#if WINPCAP
+	p->pkt_chan_idx = conf.current_channel = p->wlan_channel;
+#else
 	if (i < 0 || i >= conf.num_channels || i >= MAX_CHANNELS)
 		p->pkt_chan_idx = conf.current_channel;
 	else
 		p->pkt_chan_idx = i;
+#endif
 
 	/* detect if noise reading is present or not */
 	if (!conf.have_noise && p->phy_noise)
@@ -594,10 +598,16 @@ main(int argc, char** argv)
 			exit(1);
 		}
 
+#ifdef WINPCAP
+		conf.num_channels = wext_get_2_4_channels(channels);
+		init_channels();
+		conf.current_channel = 1;
+#else
 		/* get available channels */
 		conf.num_channels = wext_get_channels(mon, conf.ifname, channels);
 		init_channels();
 		get_current_channel(mon);
+#endif
 	}
 
 	if (!conf.quiet && !DO_DEBUG)

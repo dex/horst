@@ -137,3 +137,18 @@ wext_get_channels(int fd, const char* devname,
 }
 
 #endif
+
+int wext_get_2_4_channels(struct chan_freq channels[MAX_CHANNELS])
+{
+    int num_frequency = 13;
+    int i;
+
+    for (i = 0; i < num_frequency; i++) {
+        channels[i].chan = i+1;
+        channels[i].freq = 2412 + (i*5);
+        if (i == num_frequency - 1)
+            channels[i].freq += 5;
+    }
+    return num_frequency;
+}
+
