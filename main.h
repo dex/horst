@@ -105,6 +105,9 @@
 #define ARPHRD_IEEE80211_PRISM 802      /* IEEE 802.11 + Prism2 header  */
 #endif
 
+#ifndef ARPHRD_IEEE80211_PPI
+#define ARPHRD_IEEE80211_PPI 0xffff      /* IEEE 802.11 + Prism2 header  */
+#endif
 
 struct packet_info {
 	/* general */

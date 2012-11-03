@@ -97,12 +97,10 @@ device_get_arptype(int fd, char* ifname)
 			return 803;
 		case DLT_PRISM_HEADER:
 			return 802;
+		case DLT_PPI:
+			return 0xffff;
 		default:
-#ifdef WINPCAP
-			return 803;
-#else
 			return 801;
-#endif
 		}
 	}
 	return -1;

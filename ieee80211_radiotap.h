@@ -56,6 +56,10 @@
 #endif
 #endif /* defined(__KERNEL__) || defined(_KERNEL) */
 
+#ifndef DLT_IEEE802_11
+#define	DLT_IEEE802_11	        105	/* 802.11 */
+#endif
+
 /* kernel 2.4 compat */
 #if !defined __le16
 #define __le16        u_int16_t

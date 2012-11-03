@@ -27,6 +27,7 @@
 
 #include "prism_header.h"
 #include "ieee80211_radiotap.h"
+#include "ppi_header.h"
 #include "ieee80211.h"
 #include "ieee80211_util.h"
 #include "olsr_header.h"
@@ -38,6 +39,7 @@
 
 static int parse_prism_header(unsigned char** buf, int len, struct packet_info* p);
 static int parse_radiotap_header(unsigned char** buf, int len, struct packet_info* p);
+static int parse_ppi_header(unsigned char** buf, int len, struct packet_info* p);
 static int parse_80211_header(unsigned char** buf, int len, struct packet_info* p);
 static int parse_llc(unsigned char** buf, int len, struct packet_info* p);
 static int parse_ip_header(unsigned char** buf, int len, struct packet_info* p);
@@ -62,9 +64,15 @@ parse_packet(unsigned char* buf, int len, struct packet_info* p)
 		if (len <= 0)
 			return 0;
 	}
+	else if (conf.arphrd == ARPHRD_IEEE80211_PPI) {
+		len = parse_ppi_header(&buf, len, p);
+		if (len <= 0)
+			return 0;
+	}
 
 	if (conf.arphrd == ARPHRD_IEEE80211_PRISM ||
-	    conf.arphrd == ARPHRD_IEEE80211_RADIOTAP) {
+	    conf.arphrd == ARPHRD_IEEE80211_RADIOTAP ||
+	    conf.arphrd == ARPHRD_IEEE80211_PPI) {
 		DEBUG("before parse 80211 len: %d\n", len);
 		len = parse_80211_header(&buf, len, p);
 		if (len < 0) /* couldnt parse */
@@ -327,6 +335,59 @@ parse_radiotap_header(unsigned char** buf, int len, struct packet_info* p)
 	return len - rt_len;
 }
 
+
+static int
+parse_ppi_header(unsigned char** buf, int len, struct packet_info* p)
+{
+    ppi_packetheader_t *pph;
+    int pph_len, pph_dlt, chnl_flags;
+    unsigned char *b;
+
+    pph = (ppi_packetheader_t *)*buf;
+    pph_len = le16toh(pph->pph_len);
+    pph_dlt = le32toh(pph->pph_dlt);
+
+    if (pph_dlt != DLT_IEEE802_11)
+        return 0;
+
+    len -= sizeof(*pph);
+    b = (unsigned char *)(pph+1); 
+
+    while (b - *buf < pph_len && len > 0) {
+        ppi_fieldheader_t *pfh = (ppi_fieldheader_t *)b;
+        int pf_len = sizeof(*pfh) + PFH_DATA_LEN(pph, pfh);
+        ppi_field80211com_t *com;
+
+        if (b + pf_len > *buf + pph_len)
+            return 0;
+        com = (ppi_field80211com_t *)(b + sizeof(*pfh));
+        if (le16toh(pfh->pfh_type) == PFH_TYPE_802_11_COMMON) {
+            if (le16toh(com->com_flags) & COM_FLAG_BADFCS)
+                p->phy_flags |= PHY_FLAG_BADFCS;
+            p->phy_rate = le16toh(com->com_rate);
+            p->phy_freq = le16toh(com->com_chnl_freq);
+            p->phy_chan = ieee80211_frequency_to_channel(p->phy_freq);
+            chnl_flags = le16toh(com->com_chnl_flags);
+            if (chnl_flags & COM_CHNL_FLAG_CCK)
+                p->phy_flags |= PHY_FLAG_B;
+            if (chnl_flags & COM_CHNL_FLAG_OFDM)
+                p->phy_flags |= PHY_FLAG_G;
+            if (chnl_flags & COM_CHNL_FLAG_5GHZ)
+                p->phy_flags |= PHY_FLAG_A;
+            p->phy_signal = (int)(com->com_signal) - 256;
+            p->phy_noise = (int)(com->com_noise) - 256;
+            if (p->phy_signal == -1)
+                p->phy_signal = -95;
+            if (p->phy_noise == -1)
+                p->phy_noise = -95;
+            p->phy_snr = p->phy_signal - p->phy_noise;
+        }
+        b += pf_len;
+        len -= pf_len;
+    }
+    *buf = b;
+    return len;
+}
 
 static int
 parse_80211_header(unsigned char** buf, int len, struct packet_info* p)

@@ -305,7 +305,7 @@ handle_packet(struct packet_info* p)
 	}
 	/* not found from pkt, best guess from config but it might be
 	 * unknown (-1) too */
-#if WINPCAP
+#ifdef WINPCAP
 	p->pkt_chan_idx = conf.current_channel = p->wlan_channel;
 #else
 	if (i < 0 || i >= conf.num_channels || i >= MAX_CHANNELS)
@@ -593,8 +593,9 @@ main(int argc, char** argv)
 
 		conf.arphrd = device_get_arptype(mon, conf.ifname);
 		if (conf.arphrd != ARPHRD_IEEE80211_PRISM &&
-		conf.arphrd != ARPHRD_IEEE80211_RADIOTAP) {
-			printf("Wrong monitor type! Please use radiotap or prism2 headers\n");
+		conf.arphrd != ARPHRD_IEEE80211_RADIOTAP &&
+		conf.arphrd != ARPHRD_IEEE80211_PPI) {
+			printf("Wrong monitor type! Please use radiotap or prism2 or ppi headers\n");
 			exit(1);
 		}
 
